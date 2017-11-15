@@ -245,45 +245,60 @@ walk_foward(D) :-
 	draw_horizontal(N,M):-
 		(N > 0,
 			(
+				write(" | "),
 				(
-					not(element(N,M)),
-					not(currentPos(N,M)),
-					write("f"),
+					worldSize(W1),
+					InvertedN is W1 - N + 1, 
+					not(element(InvertedN,M)),
+					not(currentPos(InvertedN,M)),
+					write(" "),
 					C is N - 1,
 					draw_horizontal(C,M)
 				);
-				(
-					currentPos(N,M),
+				(	
+					worldSize(W2),
+					InvertedN is W2 - N + 1, 
+					currentPos(InvertedN,M),
 					write("P"),
 					C is N - 1,
 					draw_horizontal(C,M)
 				);
 				(
-					pit(N,M),
+					worldSize(W3),
+					InvertedN is W3 - N + 1, 
+					pit(InvertedN,M),
 					write("O"),
 					C is N - 1,
 					draw_horizontal(C,M)
 				);
 				(
-					enemy(N,M,_,_),
+					worldSize(W4),
+					InvertedN is W4 - N + 1, 
+					enemy(InvertedN,M,_,_),
 					write("E"),
 					C is N - 1,
 					draw_horizontal(C,M)
 				);
-				(
-					gold(N,M),
+				(	
+					worldSize(W5),
+					InvertedN is W5 - N + 1, 
+					gold(InvertedN,M),
 					write("X"),
 					C is N - 1,
 					draw_horizontal(C,M)
 				);
 				(
-					initialPos(N,M),
+					worldSize(W6),
+					InvertedN is W6 - N + 1, 
+					initialPos(InvertedN,M),
 					write("S"),
 					C is N - 1,
 					draw_horizontal(C,M)
 				)			
 			)
-		);	
+		);
+		write(" |"),nl,
+		write("  ________________________________________________"),
 		nl,
 		D is M - 1,
 		worldSize(S),
