@@ -246,29 +246,69 @@ walk_foward :-
 		Y is 1.
 		/* Update score */
 
+	apply_damage_to_enemies_column(X, [H|T], Damage):-
+		Y is H,
+		enemy(X,Y,Life,Damage_Power),
+		New_Life is Life - Damage,
+		retract(enemy(X,Y,Life,Damage_Power)),
+		assert(enemy(X,Y,New_Life,Damage_Power)),
+		apply_damage_to_enemies_column(X, T, Damage);
+		apply_damage_to_enemies_column(X, T, Damage).
+		
+	apply_damage_to_enemies_line([H|T], Y, Damage):-
+		X is H,
+		enemy(X,Y,Life,Damage_Power),
+		New_Life is Life - Damage,
+		retract(enemy(X,Y,Life,Damage_Power)),
+		assert(enemy(X,Y,New_Life,Damage_Power)),
+		apply_damage_to_enemies_line(T, Y, Damage);
+		apply_damage_to_enemies_line(T, Y, Damage).
+		
+
 	shoot:-
-		currentPos(M,N),
-		direction(D),
-		(
+		(	
+			bulletDamage(Min, Max),
+			random_between(Min, Max, Damage),
+			worldSize(Size),
+			currentPos(M,N),
+			direction(D),
 			D = north,
-			between(N,worldSize,X),
-			enemy(M,X)
+			findall(Y, between(N,Size, Y), YList),
+			apply_damage_to_enemies_column(M, YList, Damage)
 		);
 		(
+			bulletDamage(Min, Max),
+			random_between(Min, Max, Damage),
+			worldSize(Size),
+			currentPos(M,N),
+			direction(D),
 			D = east,
-			between(M,worldSize,X),
-			enemy(X,N)
+			findall(X, between(M,Size, X), XList),
+			apply_damage_to_enemies_line(XList, N, Damage)
 		);
 		(
-			D = south,
-			between(1,N,X),
-			enemy(M,X)
+			bulletDamage(Min, Max),
+			random_between(Min, Max, Damage),
+			worldSize(Size),
+			currentPos(M,N),
+			currentPos(M,N),
+			direction(D),
+			D = south,	
+			findall(Y, between(1,N, Y), YList),
+			apply_damage_to_enemies_column(M, YList, Damage)
 		);
 		(
+			bulletDamage(Min, Max),
+			random_between(Min, Max, Damage),
+			worldSize(Size),
+			currentPos(M,N),
+			currentPos(M,N),
+			direction(D),
 			D = west,
-			between(1,M,X),
-			enemy(X,N)
-		).
+			findall(X, between(1,M, X), XList),
+			apply_damage_to_enemies_line(XList, N, Damage)
+		);
+		true.
 
 
 	/* Drawing the map - needs to be called each turn */
