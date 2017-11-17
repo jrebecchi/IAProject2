@@ -102,7 +102,7 @@ generate_pits(N) :-
 	);
 	true.
 
-
+/* Initializing funciton */
 
 
 init:- 
@@ -187,24 +187,29 @@ walk_foward :-
 			(
 				D = north,
 				assert(direction(east)),
-				retract(direction(north))
+				retract(direction(north)),
+				write("Player is facing east"), nl
 			);
 			(
 				D = east,
 				assert(direction(south)),
-				retract(direction(east))
+				retract(direction(east)),
+				write("Player is facing south"), nl
 			);
 			(
 				D = south,
 				assert(direction(west)),
-				retract(direction(south))
+				retract(direction(south)),
+				write("Player is facing west"), nl
 			);
 			(
 				D = west,
 				assert(direction(north)),
-				retract(direction(west))
+				retract(direction(west)),
+				write("Player is facing north"), nl
 			)
-		).
+		),
+		update_score(-1).
 
 	turn_left:-
 		write("Player just turned left!"), nl,
@@ -213,28 +218,34 @@ walk_foward :-
 			(
 				D = north,
 				assert(direction(west)),
-				retract(direction(north))
+				retract(direction(north)),
+				write("Player is facing west"), nl
 			);
 			(
 				D = east,
 				assert(direction(north)),
-				retract(direction(east))
+				retract(direction(east)),
+				write("Player is facing north"), nl
 			);
 			(
 				D = south,
 				assert(direction(east)),
-				retract(direction(south))
+				retract(direction(south)),
+				write("Player is facing east"), nl
 			);
 			(
 				D = west,
 				assert(direction(south)),
-				retract(direction(west))
+				retract(direction(west)),
+				write("Player is facing south"), nl
 			)
-		).
+		),
+		update_score(-1).
 
 	grab_object:-
 		currentPos(X,Y),
 		gold(X,Y),
+		update_score(1000),
 		retract(gold(X,Y)),
 		retract(element(X,Y)).
 			/* Update score */
@@ -260,7 +271,12 @@ walk_foward :-
 			pit(XHero,YHero),
 			currentLife(ActualLife),
 			retract(currentLife(ActualLife)),
-			assert(currentLife(0))
+			assert(currentLife(0)),
+			retract(currentPos(X,Y)),
+			assert(currentPos(100,100),
+			update_score(-1000),
+			write("The Player fell on the pit! G A M E O V E R"), nl.
+
 		);
 		true.
 			
@@ -284,6 +300,7 @@ walk_foward :-
 		apply_damage_to_enemies_line(T, Y, Damage).
 		
 	shoot:-
+		update_score(-10),
 		(	
 			bulletDamage(Min, Max),
 			random_between(Min, Max, Damage),
@@ -452,6 +469,7 @@ walk_foward :-
 			Y1 is Y+1,assert(possible_pit(X,Y1)),
 			Y2 is Y-1,assert(possible_pit(X,Y2))
 		).
+
 	handle_smell:-
 		currentPos(X,Y),(
 			X1 is X+1,assert(possible_wumpus(X1,Y)),
@@ -459,6 +477,7 @@ walk_foward :-
 			Y1 is Y+1,assert(possible_wumpus(X,Y1)),
 			Y2 is Y-1,assert(possible_wumpus(X,Y2))
 		).
+
 	/* Danger! Trying to find safe action */
 
 	find_safety:-
@@ -473,7 +492,7 @@ walk_foward :-
 	/* Safe! Exploring new places */
 
 	explore:-
-		write("Exploring!"),
+		write("Exploring!"), nl,
 		currentPos(X,Y),
 		(
 			(M is X-1,M>0,safeTiles(M,Y),not(visitedTiles(M,Y)),direction(C),find_direction(C,west),walk_foward);
@@ -518,3 +537,10 @@ walk_foward :-
 				(N = west, turn_right, turn_right)
 			)
 		).
+
+		update_score(N):-
+		points(S),
+		X is S + N,
+		retract(points(S)),
+		assert(points(X)),
+		write("The current score is "), write(X), nl.
