@@ -17,6 +17,7 @@
 	currentLife/1,
 	element/2,
 	visitedTiles/2,
+	safeTiles/2,
 	possibleDanger/2.
 
 /* Defining adjecent */
@@ -25,7 +26,7 @@ adjecent(X,Y,M,N) :-
 	(X is M + 1, Y is N);
 	(X is M - 1, Y is N);
 	(X is M, Y is N + 1);
-	(X is M, Y is N - 1);
+	(X is M, Y is N - 1).
 
 
 /* Rules about the stage - Can prolog know these? */
@@ -118,95 +119,123 @@ init:-
 
 /* Actions functions */
 
-walk_foward(D) :- 
+walk_foward :- 
+	write("Player just walked!"), nl,
 	currentPos(X,Y),
+	direction(D),
 	(
 		(
-			D = north, 
-			Z is Y + 1,
-			not(wall(X, Z)),
-			assert(currentPos(X,Z)),
-			retract(currentPos(X,Y)),
-			assert(visitedTiles(X,Y)),
-			write(X), write(Z)
+			D = north,
+			( 
+				Z is Y + 1,
+				(
+					not(wall(X, Z)),
+					assert(currentPos(X,Z)),
+					retract(currentPos(X,Y)),
+					assert(visitedTiles(X,Z))
+				); 
+				turn_right
+			)
+			
 		);
 		(
-			D = south, 
-			Z is Y - 1,
-			not(wall(X, Z)),
-			assert(currentPos(X,Z)),
-			retract(currentPos(X,Y)),
-			assert(visitedTiles(X,Y)),
-			write(X), write(Z)
+			D = south,
+			( 
+				Z is Y - 1,
+				(
+					not(wall(X, Z)),
+					assert(currentPos(X,Z)),
+					retract(currentPos(X,Y)),
+					assert(visitedTiles(X,Z))
+				);
+				turn_right
+			)
 		);
 		(
-			D = east, 
-			Z is X + 1,
-			not(wall(Z, Y)),
-			assert(currentPos(Z,Y)),
-			retract(currentPos(X,Y)),
-			assert(visitedTiles(X,Y)),
-			write(Z), write(Y)
+			D = east,
+			( 
+				Z is X + 1,
+				(
+					not(wall(Z, Y)),
+					assert(currentPos(Z,Y)),
+					retract(currentPos(X,Y)),
+					assert(visitedTiles(Z,Y))
+				);
+				turn_right
+			)
 		);
 		(
-			D = west, 
-			Z is X - 1,
-			not(wall(Z, Y)),
-			assert(currentPos(Z,Y)),
-			retract(currentPos(X,Y)),
-			assert(visitedTiles(X,Y)),
-			write(Z), write(Y)
+			D = west,
+			( 
+				Z is X - 1,
+				(
+					not(wall(Z, Y)),
+					assert(currentPos(Z,Y)),
+					retract(currentPos(X,Y)),
+					assert(visitedTiles(Z,Y))
+				);
+				turn_right
+			)
 		)
 	).
 
-	turn_right(D) :-
+	turn_right:-
+		write("Player just turned right!"), nl,
+		direction(D),
 		(
-			D = north,
-			assert(direction(east)),
-			retract(direction(north))
-		);
-		(
-			D = east,
-			assert(direction(south)),
-			retract(direction(east))
-		);
-		(
-			D = south,
-			assert(direction(west)),
-			retract(direction(south))
-		);
-		(
-			D = west,
-			assert(direction(north)),
-			retract(direction(west))
+			(
+				D = north,
+				assert(direction(east)),
+				retract(direction(north))
+			);
+			(
+				D = east,
+				assert(direction(south)),
+				retract(direction(east))
+			);
+			(
+				D = south,
+				assert(direction(west)),
+				retract(direction(south))
+			);
+			(
+				D = west,
+				assert(direction(north)),
+				retract(direction(west))
+			)
 		).
 
-	turn_left(D) :-
+	turn_left:-
+		write("Player just turned left!"), nl,
+		direction(D),
 		(
-			D = north,
-			assert(direction(west)),
-			retract(direction(north))
-		);
-		(
-			D = east,
-			assert(direction(north)),
-			retract(direction(east))
-		);
-		(
-			D = south,
-			assert(direction(east)),
-			retract(direction(south))
-		);
-		(
-			D = west,
-			assert(direction(south)),
-			retract(direction(west))
+			(
+				D = north,
+				assert(direction(west)),
+				retract(direction(north))
+			);
+			(
+				D = east,
+				assert(direction(north)),
+				retract(direction(east))
+			);
+			(
+				D = south,
+				assert(direction(east)),
+				retract(direction(south))
+			);
+			(
+				D = west,
+				assert(direction(south)),
+				retract(direction(west))
+			)
 		).
 
 	grab_object:-
 		currentPos(X,Y),
 		gold(X,Y),
-		retract(gold(X,Y)).
+		retract(gold(X,Y)),
+		retract(element(X,Y)).
 			/* Update score */
 		
 
@@ -216,8 +245,9 @@ walk_foward(D) :-
 		Y is 1.
 		/* Update score */
 
-	shoot(D):-
+	shoot:-
 		currentPos(M,N),
+		direction(D),
 		(
 			D = north,
 			between(N,worldSize,X),
@@ -318,34 +348,74 @@ walk_foward(D) :-
 				grab_object
 			);
 			(
+
 				(smell(X,Y);wind(X,Y)),
-				handle_danger(X,Y),
-				find_safety(X,Y)
+				write("Player smells danger!"), nl,
+				handle_danger,
+				(find_safety; go_back)
 			);
 			(
-				direction(D),
-				walk_foward(D)
+				safe_surroundings,
+				write("Player feels safe!"), nl,
+				walk_foward /* function explore still not working - should go here */
+
+			);
+			(
+				walk_foward
 			)
 		),
 		worldSize(S),
 		draw_horizontal(S,S).
 
+	/* Turn around */
 
-	/* Knowledge fron danger */
+	go_back:-
+		turn_right,
+		turn_right,
+		walk_foward.
 
-	handle_danger(X,Y):-
+
+	/* Mark surroundings as safe */
+
+	safe_surroundings:-
+		currentPos(X,Y),
+		assert(safeTiles(M is X+1,Y)),
+		assert(safeTiles(M is X-1,Y)),
+		assert(safeTiles(X,M is Y+1)),
+		assert(safeTiles(X,M is Y-1)).
+
+	/* Knowledge from danger */
+
+	handle_danger:-
+		currentPos(X,Y),
 		(visitedTiles(M is X+1,Y);assert(possibleDanger(M is X+1, Y))),
 		(visitedTiles(M is X-1,Y);assert(possibleDanger(M is X-1, Y))),
 		(visitedTiles(X,M is Y+1);assert(possibleDanger(X, M is Y+1))),
 		(visitedTiles(X,M is Y-1);assert(possibleDanger(X, M is Y-1))).
 
-	/* Trying to find best action */
+	/* Danger! Trying to find safe action */
 
-	find_safety(X,Y):-
-		not(possibleDanger(M is X+1,Y)),direction(C),find_direction(C,east),walk_foward,
-		not(possibleDanger(M is X-1,Y)),direction(C),find_direction(C,west),walk_foward,
-		not(possibleDanger(X,M is Y+1)),direction(C),find_direction(C,north),walk_foward,
-		not(possibleDanger(X,M is Y-1)),direction(C),find_direction(C,south),walk_foward.
+	find_safety:-
+		currentPos(X,Y),
+		(
+			(safeTiles(M is X+1,Y),direction(C),find_direction(C,east),walk_foward);
+			(safeTiles(X,M is Y-1),direction(C),find_direction(C,south),walk_foward);
+			(safeTiles(M is X-1,Y),direction(C),find_direction(C,west),walk_foward);
+			(safeTiles(X,M is Y+1),direction(C),find_direction(C,north),walk_foward)
+		).
+
+	/* Safe! Exploring new places */
+
+	explore:-
+		write("Exploring!"),
+		currentPos(X,Y),
+		(
+			(safeTiles(M is X-1,Y),not(visitedTiles(M is X-1,Y)),direction(C),find_direction(C,west),walk_foward);
+			(safeTiles(M is X+1,Y),not(visitedTiles(M is X+1,Y)),direction(C),find_direction(C,east),walk_foward);
+			(safeTiles(X,M is Y-1),not(visitedTiles(X,M is Y-1)),direction(C),find_direction(C,south),walk_foward);
+			(safeTiles(X,M is Y+1),not(visitedTiles(X,M is Y+1)),direction(C),find_direction(C,north),walk_foward)
+
+		).
 
 	/* Finding the best turn to face the desired direction */
 
