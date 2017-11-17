@@ -1,4 +1,3 @@
-
 /* TODO - Add the score, add the shooting action, add player action feedback */
 
 
@@ -18,7 +17,8 @@
 	element/2,
 	visitedTiles/2,
 	safeTiles/2,
-	possibleDanger/2.
+	possible_pit/2,
+	possible_wumpus/2.
 
 /* Defining adjecent */
 
@@ -42,9 +42,9 @@ element(1,1).
 
 /* Perceptions */
 wall(X,Y) :- worldSize(S), (X > S; Y > S; X < 1; Y < 1).
-smell(X,Y) :- enemy(M,N,_,_), adjecent(X,Y,M,N).
-wind(X,Y) :- pit(M,N), adjecent(X,Y,M,N).
-shine(X,Y) :- gold(X,Y).
+smell(X,Y) :- enemy(M,N,_,_), adjecent(X,Y,M,N) , write("Player smell enemy"),nl.
+wind(X,Y) :- pit(M,N), adjecent(X,Y,M,N), write("Player feel a breeze"),nl.
+shine(X,Y) :- gold(X,Y), write("Player is seeing a shiny thing"),nl.
 
 /* Creating world */
 
@@ -112,6 +112,7 @@ init:-
 	assert(currentLife(100)), 
 	assert(initialPos(1,1)),
 	assert(direction(north)),
+	assert(visitedTiles(1,1)),
 	randomizeElements,
 	generate_pits(8),
 	generate_golds(3),
@@ -344,20 +345,19 @@ walk_foward :-
 		currentPos(X,Y),
 		(
 			(
-				shine(X,Y),
+				shine(X,Y)->
 				grab_object
 			);
 			(
 
-				(smell(X,Y);wind(X,Y)),
-				write("Player smells danger!"), nl,
-				handle_danger,
-				(find_safety; go_back)
+				((smell(X,Y)->handle_smell),(wind(X,Y)-> handle_breeze))->find_safety;
+				(smell(X,Y)->handle_smell)->find_safety;
+				(wind(X,Y)-> handle_breeze)->find_safety
 			);
 			(
 				safe_surroundings,
 				write("Player feels safe!"), nl,
-				walk_foward /* function explore still not working - should go here */
+				explore /* function explore still not working - should go here */
 
 			);
 			(
@@ -378,30 +378,38 @@ walk_foward :-
 	/* Mark surroundings as safe */
 
 	safe_surroundings:-
-		currentPos(X,Y),
-		assert(safeTiles(M is X+1,Y)),
-		assert(safeTiles(M is X-1,Y)),
-		assert(safeTiles(X,M is Y+1)),
-		assert(safeTiles(X,M is Y-1)).
+		currentPos(X,Y),(
+			X1 is X+1,assert(safeTiles(X1,Y)),
+			X2 is X-1,assert(safeTiles(X2,Y)),
+			Y1 is Y+1,assert(safeTiles(X,Y1)),
+			Y2 is Y-1,assert(safeTiles(X,Y2))
+		).
 
 	/* Knowledge from danger */
 
-	handle_danger:-
-		currentPos(X,Y),
-		(visitedTiles(M is X+1,Y);assert(possibleDanger(M is X+1, Y))),
-		(visitedTiles(M is X-1,Y);assert(possibleDanger(M is X-1, Y))),
-		(visitedTiles(X,M is Y+1);assert(possibleDanger(X, M is Y+1))),
-		(visitedTiles(X,M is Y-1);assert(possibleDanger(X, M is Y-1))).
-
+	handle_breeze:-
+		currentPos(X,Y),(
+			X1 is X+1,assert(possible_pit(X1,Y)),
+			X2 is X-1,assert(possible_pit(X2,Y)),
+			Y1 is Y+1,assert(possible_pit(X,Y1)),
+			Y2 is Y-1,assert(possible_pit(X,Y2))
+		).
+	handle_smell:-
+		currentPos(X,Y),(
+			X1 is X+1,assert(possible_wumpus(X1,Y)),
+			X2 is X-1,assert(possible_wumpus(X2,Y)),
+			Y1 is Y+1,assert(possible_wumpus(X,Y1)),
+			Y2 is Y-1,assert(possible_wumpus(X,Y2))
+		).
 	/* Danger! Trying to find safe action */
 
 	find_safety:-
 		currentPos(X,Y),
 		(
-			(safeTiles(M is X+1,Y),direction(C),find_direction(C,east),walk_foward);
-			(safeTiles(X,M is Y-1),direction(C),find_direction(C,south),walk_foward);
-			(safeTiles(M is X-1,Y),direction(C),find_direction(C,west),walk_foward);
-			(safeTiles(X,M is Y+1),direction(C),find_direction(C,north),walk_foward)
+			(M is X+1,safeTiles(M,Y),direction(C),find_direction(C,east),walk_foward);
+			(M is Y-1,safeTiles(X,M),direction(C),find_direction(C,south),walk_foward);
+			(M is X-1,safeTiles(M,Y),direction(C),find_direction(C,west),walk_foward);
+			(M is Y+1,safeTiles(X,M),direction(C),find_direction(C,north),walk_foward)
 		).
 
 	/* Safe! Exploring new places */
@@ -410,10 +418,10 @@ walk_foward :-
 		write("Exploring!"),
 		currentPos(X,Y),
 		(
-			(safeTiles(M is X-1,Y),not(visitedTiles(M is X-1,Y)),direction(C),find_direction(C,west),walk_foward);
-			(safeTiles(M is X+1,Y),not(visitedTiles(M is X+1,Y)),direction(C),find_direction(C,east),walk_foward);
-			(safeTiles(X,M is Y-1),not(visitedTiles(X,M is Y-1)),direction(C),find_direction(C,south),walk_foward);
-			(safeTiles(X,M is Y+1),not(visitedTiles(X,M is Y+1)),direction(C),find_direction(C,north),walk_foward)
+			(M is X-1,M>0,safeTiles(M,Y),not(visitedTiles(M,Y)),direction(C),find_direction(C,west),walk_foward);
+			(M is X+1,M<13,safeTiles(M,Y),not(visitedTiles(M,Y)),direction(C),find_direction(C,east),walk_foward);
+			(M is Y-1,M>0,safeTiles(X,M),not(visitedTiles(X,M )),direction(C),find_direction(C,south),walk_foward);
+			(M is Y+1,M<13,safeTiles(X,M ),not(visitedTiles(X,M )),direction(C),find_direction(C,north),walk_foward)
 
 		).
 
@@ -452,15 +460,3 @@ walk_foward :-
 				(N = west, turn_right, turn_right)
 			)
 		).
-
-	
-
-
-
-
-
-
-
-
-
-
