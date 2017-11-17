@@ -245,6 +245,25 @@ walk_foward :-
 		X is 1,
 		Y is 1.
 		/* Update score */
+		
+	apply_damage:-
+		(
+			currentPos(XHero,YHero),
+			enemy(XHero,YHero,_,Damage),
+			currentLife(ActualLife),
+			NewLife is ActualLife - Damage,
+			retract(currentLife(ActualLife)),
+			assert(currentLife(NewLife))
+		);
+		(
+			currentPos(XHero,YHero),
+			pit(XHero,YHero),
+			currentLife(ActualLife),
+			retract(currentLife(ActualLife)),
+			assert(currentLife(0))
+		);
+		true.
+			
 
 	apply_damage_to_enemies_column(X, [H|T], Damage):-
 		Y is H,
@@ -264,7 +283,6 @@ walk_foward :-
 		apply_damage_to_enemies_line(T, Y, Damage);
 		apply_damage_to_enemies_line(T, Y, Damage).
 		
-
 	shoot:-
 		(	
 			bulletDamage(Min, Max),
