@@ -560,3 +560,28 @@ walk_foward :-
 			M is B-Y,M<0,direction(C),find_direction(C,north),walk_foward;
 			M is A-X,M>0,direction(C),find_direction(C,south),walk_foward
 			).
+	
+	/* Main loop */
+	run(init):-
+		init,
+		run(nextStep),
+		true.
+	
+	run(nextStep):-
+		sleep(0.5),nl,
+		write("New Step"),nl,nl,
+		(
+			currentLife(LifeLevel),
+			LifeLevel > 0,
+			decision_maker,
+			nextStepCaller
+		);
+		(
+			points(Score), 
+			format("------ Your final score is ~w", [Score])
+		),
+		true.
+		
+	nextStepCaller:-
+		run(nextStep),
+		true.
