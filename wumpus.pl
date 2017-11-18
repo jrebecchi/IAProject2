@@ -419,32 +419,33 @@ walk_foward :-
 			draw_horizontal(S,D)
 		);
 		true.
+	/* basic movements for the decision_maker */
+	movements:-
+		(
+			explore; /* function explore still not working - should go here */
+			currentPos(X,Y),1=X,1=Y,write("finish"),ln;
+			collect_scrumble
+		).
 
 	/* The brain of the player */
-
 	decision_maker :-
 		currentPos(X,Y),
 		(
 			(
-				shine(X,Y)->
-				grab_object
+				shine(X,Y)->grab_object
 			);
 			(
 
-				((smell(X,Y)->handle_smell),(wind(X,Y)-> handle_breeze))->find_safety;
-				(smell(X,Y)->handle_smell)->find_safety;
-				(wind(X,Y)-> handle_breeze)->find_safety
+				((smell(X,Y)->handle_smell),(wind(X,Y)-> handle_breeze)->movements);
+				(smell(X,Y)->handle_smell)->movements;
+				(wind(X,Y)-> handle_breeze)->movements
 			);
 			(
-				safe_surroundings,
-				write("Player feels safe!"), nl,
-				explore; /* function explore still not working - should go here */
-				currentPos(X,Y),1=X,1=Y,write("finish"),ln;
+				safe_surroundings,write("Player feels safe!"), nl,movements
+
+			);
+			(
 				collect_scrumble
-
-			);
-			(
-				walk_foward
 			)
 		),
 		worldSize(S),
@@ -486,21 +487,11 @@ walk_foward :-
 			Y2 is Y-1,assert(possible_wumpus(X,Y2))
 		).
 
-	/* Danger! Trying to find safe action */
-
-	find_safety:-
-		currentPos(X,Y),scrumble(A,B),retract(scrumble(A,B)),
-		(
-			(M is X+1,safeTiles(M,Y),direction(C),find_direction(C,east),walk_foward);
-			(M is Y-1,safeTiles(X,M),direction(C),find_direction(C,south),walk_foward);
-			(M is X-1,safeTiles(M,Y),direction(C),find_direction(C,west),walk_foward);
-			(M is Y+1,safeTiles(X,M),direction(C),find_direction(C,north),walk_foward)
-		).
+	
 
 	/* Safe! Exploring new places */
 
 	explore:-
-		write("Exploring!"), nl,
 		currentPos(X,Y),
 		(
 			(M is X-1,M>0,safeTiles(M,Y),not(visitedTiles(M,Y)),direction(C),find_direction(C,west),walk_foward);
@@ -552,7 +543,7 @@ walk_foward :-
 		retract(points(S)),
 		assert(points(X)),
 		write("The current score is "), write(X), nl.
-
+	/* when there is any adjacent new safe tile he return to the old scrumble*/
 	collect_scrumble:-
 		scrumble(A,B),retract(scrumble(A,B)),scrumble(X,Y),retract(scrumble(X,Y)),(
 			M is A-X,M<0,direction(C),find_direction(C,east),walk_foward;
