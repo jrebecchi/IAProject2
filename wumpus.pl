@@ -123,7 +123,7 @@ init:-
 /* Actions functions */
 
 walk_foward :- 
-	write("Player just walked!"), nl,
+	write("Player just walked!"), nl,update_score(-1),
 	currentPos(X,Y),
 	direction(D),
 	(
@@ -191,7 +191,7 @@ walk_foward :-
 	).
 
 	turn_right:-
-		write("Player just turned right!"), nl,
+		write("Player just turned right!"), nl,update_score(-1),
 		direction(D),
 		(
 			(
@@ -218,11 +218,10 @@ walk_foward :-
 				retract(direction(west)),
 				write("Player is facing north"), nl
 			)
-		),
-		update_score(-1).
+		).
 
 	turn_left:-
-		write("Player just turned left!"), nl,
+		write("Player just turned left!"), nl,update_score(-1),
 		direction(D),
 		(
 			(
@@ -249,11 +248,10 @@ walk_foward :-
 				retract(direction(west)),
 				write("Player is facing south"), nl
 			)
-		),
-		update_score(-1).
+		).
 
 	grab_object:-
-		currentPos(X,Y),
+		currentPos(X,Y),update_score(-1),
 		gold(X,Y),
 		update_score(1000),
 		retract(gold(X,Y)),
@@ -262,7 +260,7 @@ walk_foward :-
 		
 
 	climb_up:-
-		currentPos(X,Y),
+		currentPos(X,Y),update_score(-1),
 		X is 1,
 		Y is 1.
 		/* Update score */
@@ -426,7 +424,7 @@ walk_foward :-
 	/* basic movements for the decision_maker */
 	movements:-
 		(
-			explore; /* function explore still not working - should go here */
+			explore; 
 			collect_scrumble;
 			gohome
 		).
@@ -443,9 +441,9 @@ walk_foward :-
 			);
 			(
 
-				((smell(X,Y)->handle_smell),(wind(X,Y)-> handle_breeze)->movements);
-				(smell(X,Y)->handle_smell)->movements;
-				(wind(X,Y)-> handle_breeze)->movements
+				((smell(X,Y)->handle_smell),(wind(X,Y)-> handle_breeze)->(collect_scrumble;gohome));
+				(smell(X,Y)->handle_smell)->(collect_scrumble;gohome);
+				(wind(X,Y)-> handle_breeze)->(collect_scrumble;gohome)
 			);
 			(
 				safe_surroundings,write("Player feels safe!"), nl,movements
@@ -504,7 +502,7 @@ walk_foward :-
 			(M is X-1,M>0,safeTiles(M,Y),not(visitedTiles(M,Y)),direction(C),find_direction(C,west),walk_foward);
 			(M is X+1,M<13,safeTiles(M,Y),not(visitedTiles(M,Y)),direction(C),find_direction(C,east),walk_foward);
 			(M is Y-1,M>0,safeTiles(X,M),not(visitedTiles(X,M )),direction(C),find_direction(C,south),walk_foward);
-			(M is Y+1,M<13,safeTiles(X,M ),not(visitedTiles(X,M )),direction(C),find_direction(C,north),walk_foward)
+			(M is Y+1,M<13,safeTiles(X,M),not(visitedTiles(X,M )),direction(C),find_direction(C,north),walk_foward)
 
 		).
 
