@@ -136,7 +136,8 @@ walk_foward :-
 					assert(currentPos(X,Z)),
 					retract(currentPos(X,Y)),
 					assert(visitedTiles(X,Z)),
-					asserta(scrumble(X,Z))
+					asserta(scrumble(X,Z)),
+					apply_damage
 				); 
 				turn_right
 			)
@@ -151,7 +152,8 @@ walk_foward :-
 					assert(currentPos(X,Z)),
 					retract(currentPos(X,Y)),
 					assert(visitedTiles(X,Z)),
-					asserta(scrumble(X,Z))
+					asserta(scrumble(X,Z)),
+					apply_damage
 				);
 				turn_right
 			)
@@ -165,7 +167,8 @@ walk_foward :-
 					assert(currentPos(Z,Y)),
 					retract(currentPos(X,Y)),
 					assert(visitedTiles(Z,Y)),
-					asserta(scrumble(Z,Y))
+					asserta(scrumble(Z,Y)),
+					apply_damage
 				);
 				turn_right
 			)
@@ -179,7 +182,8 @@ walk_foward :-
 					assert(currentPos(Z,Y)),
 					retract(currentPos(X,Y)),
 					assert(visitedTiles(Z,Y)),
-					asserta(scrumble(Z,Y))
+					asserta(scrumble(Z,Y)),
+					apply_damage
 				);
 				turn_right
 			)
