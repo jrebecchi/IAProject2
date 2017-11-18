@@ -427,14 +427,17 @@ walk_foward :-
 	movements:-
 		(
 			explore; /* function explore still not working - should go here */
-			currentPos(X,Y),1=X,1=Y,write("finish"),ln;
-			collect_scrumble
+			collect_scrumble;
+			gohome
 		).
 
 	/* The brain of the player */
 	decision_maker :-
 		currentPos(X,Y),
 		(
+			(
+				not(gold(A,B)),gohome
+			);
 			(
 				shine(X,Y)->grab_object
 			);
@@ -580,3 +583,6 @@ walk_foward :-
 	nextStepCaller:-
 		run(nextStep),
 		true.
+	gohome:-
+		currentPos(X,Y),1=X,1=Y,retract(currentLife(ActualLife)),assert(currentLife(0));
+		collect_scrumble,gohome.
