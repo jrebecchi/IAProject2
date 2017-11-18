@@ -18,7 +18,8 @@
 	visitedTiles/2,
 	safeTiles/2,
 	possible_pit/2,
-	possible_wumpus/2.
+	possible_wumpus/2,
+	scrumble/2.
 
 /* Defining adjecent */
 
@@ -113,6 +114,7 @@ init:-
 	assert(initialPos(1,1)),
 	assert(direction(north)),
 	assert(visitedTiles(1,1)),
+	assert(scrumble(1,1)),
 	randomizeElements,
 	generate_pits(8),
 	generate_golds(3),
@@ -133,7 +135,8 @@ walk_foward :-
 					not(wall(X, Z)),
 					assert(currentPos(X,Z)),
 					retract(currentPos(X,Y)),
-					assert(visitedTiles(X,Z))
+					assert(visitedTiles(X,Z)),
+					asserta(scrumble(X,Z))
 				); 
 				turn_right
 			)
@@ -147,7 +150,8 @@ walk_foward :-
 					not(wall(X, Z)),
 					assert(currentPos(X,Z)),
 					retract(currentPos(X,Y)),
-					assert(visitedTiles(X,Z))
+					assert(visitedTiles(X,Z)),
+					asserta(scrumble(X,Z))
 				);
 				turn_right
 			)
@@ -160,7 +164,8 @@ walk_foward :-
 					not(wall(Z, Y)),
 					assert(currentPos(Z,Y)),
 					retract(currentPos(X,Y)),
-					assert(visitedTiles(Z,Y))
+					assert(visitedTiles(Z,Y)),
+					asserta(scrumble(Z,Y))
 				);
 				turn_right
 			)
@@ -173,7 +178,8 @@ walk_foward :-
 					not(wall(Z, Y)),
 					assert(currentPos(Z,Y)),
 					retract(currentPos(X,Y)),
-					assert(visitedTiles(Z,Y))
+					assert(visitedTiles(Z,Y)),
+					asserta(scrumble(Z,Y))
 				);
 				turn_right
 			)
@@ -273,9 +279,9 @@ walk_foward :-
 			retract(currentLife(ActualLife)),
 			assert(currentLife(0)),
 			retract(currentPos(X,Y)),
-			assert(currentPos(100,100),
+			assert(currentPos(100,100)),
 			update_score(-1000),
-			write("The Player fell on the pit! G A M E O V E R"), nl.
+			write("The Player fell on the pit! G A M E O V E R"), nl
 
 		);
 		true.
@@ -432,7 +438,9 @@ walk_foward :-
 			(
 				safe_surroundings,
 				write("Player feels safe!"), nl,
-				explore /* function explore still not working - should go here */
+				explore; /* function explore still not working - should go here */
+				currentPos(X,Y),1=X,1=Y,write("finish"),ln;
+				collect_scrumble
 
 			);
 			(
@@ -481,7 +489,7 @@ walk_foward :-
 	/* Danger! Trying to find safe action */
 
 	find_safety:-
-		currentPos(X,Y),
+		currentPos(X,Y),scrumble(A,B),retract(scrumble(A,B)),
 		(
 			(M is X+1,safeTiles(M,Y),direction(C),find_direction(C,east),walk_foward);
 			(M is Y-1,safeTiles(X,M),direction(C),find_direction(C,south),walk_foward);
@@ -544,3 +552,11 @@ walk_foward :-
 		retract(points(S)),
 		assert(points(X)),
 		write("The current score is "), write(X), nl.
+
+	collect_scrumble:-
+		scrumble(A,B),retract(scrumble(A,B)),scrumble(X,Y),retract(scrumble(X,Y)),(
+			M is A-X,M<0,direction(C),find_direction(C,east),walk_foward;
+			M is A-X,M>0,direction(C),find_direction(C,west),walk_foward;
+			M is B-Y,M<0,direction(C),find_direction(C,north),walk_foward;
+			M is A-X,M>0,direction(C),find_direction(C,south),walk_foward
+			).
