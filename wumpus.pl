@@ -584,4 +584,6 @@ walk_foward :-
 		true.
 	gohome:-
 		currentPos(X,Y),1=X,1=Y,retract(currentLife(ActualLife)),assert(currentLife(0));
-		collect_scrumble,gohome.
+		collect_scrumble,worldSize(S),
+		draw_horizontal(S,S),write("Going Home!"),nl,sleep(0.5),
+		gohome.
