@@ -262,7 +262,8 @@ walk_foward :-
 	climb_up:-
 		currentPos(X,Y),update_score(-1),
 		X is 1,
-		Y is 1.
+		Y is 1,
+		write("Player climb up outside the dungeon"),nl.
 		/* Update score */
 		
 	apply_damage:-
@@ -426,7 +427,7 @@ walk_foward :-
 		(
 			explore; 
 			collect_scrumble;
-			gohome
+			(gohome,climb_up)
 		).
 
 	/* The brain of the player */
@@ -441,9 +442,9 @@ walk_foward :-
 			);
 			(
 
-				((smell(X,Y)->handle_smell),(wind(X,Y)-> handle_breeze)->(collect_scrumble;gohome));
-				(smell(X,Y)->handle_smell)->(collect_scrumble;gohome);
-				(wind(X,Y)-> handle_breeze)->(collect_scrumble;gohome)
+				((smell(X,Y)->handle_smell),(wind(X,Y)-> handle_breeze))->(collect_scrumble;(gohome,climb_up));
+				(smell(X,Y)->handle_smell)->(collect_scrumble;(gohome,climb_up));
+				(wind(X,Y)-> handle_breeze)->(collect_scrumble;(gohome,climb_up))
 			);
 			(
 				safe_surroundings,write("Player feels safe!"), nl,movements
@@ -554,7 +555,7 @@ walk_foward :-
 			M is A-X,M<0,direction(C),find_direction(C,east),walk_foward;
 			M is A-X,M>0,direction(C),find_direction(C,west),walk_foward;
 			M is B-Y,M<0,direction(C),find_direction(C,north),walk_foward;
-			M is A-X,M>0,direction(C),find_direction(C,south),walk_foward
+			M is B-Y,M>0,direction(C),find_direction(C,south),walk_foward
 			).
 	
 	/* Main loop */
@@ -573,7 +574,7 @@ walk_foward :-
 			nextStepCaller
 		);
 		(
-			points(Score), 
+			points(Score),
 			format("------ Your final score is ~w", [Score])
 		),
 		true.
