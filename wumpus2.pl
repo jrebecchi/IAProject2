@@ -21,7 +21,8 @@
 	possible_wumpus/3,
 	scrumble/2,
 	players_pit/2,
-	players_wumpus/2.
+	players_wumpus/2,
+	temp/2.
 
 /* Defining adjecent */
 
@@ -266,7 +267,8 @@ walk_foward :-
 		X is 1,
 		Y is 1,
 		retract(currentLife(ActualLife)),assert(currentLife(-1)),
-		write("Player climb up outside the dungeon"),nl.
+		write("Player climb up outside the dungeon"),nl,
+		worldSize(S).
 		/* Update score */
 		
 	apply_damage:-
@@ -430,7 +432,7 @@ walk_foward :-
 		(
 			explore; 
 			collect_scrumble;
-			gohome
+			(X=1,Y=1;best_pathHome(X,Y)),gohome
 		).
 
 	/* The brain of the player */
@@ -438,16 +440,16 @@ walk_foward :-
 		currentPos(X,Y),
 		(
 			(
-				not(gold(A,B)),gohome
+				not(gold(A,B)),(best_pathHome(X,Y),gohome)
 			);
 			(
 				shine(X,Y)->grab_object
 			);
 			(
 
-				((smell(X,Y)->handle_smell),(wind(X,Y)-> handle_breeze))->(collect_scrumble;gohome);
-				(smell(X,Y)->handle_smell)->(collect_scrumble;gohome);
-				(wind(X,Y)-> handle_breeze)->(collect_scrumble;gohome)
+				(smell(X,Y),wind(X,Y))->(handle_smell,handle_breeze,movements);
+				(smell(X,Y)->handle_smell)->(movements);
+				(wind(X,Y)-> handle_breeze)->(movements)
 			);
 			(
 				safe_surroundings,write("Player feels safe!"), nl,movements
@@ -582,17 +584,16 @@ walk_foward :-
 			points(Score),
 			format("------ Your final score is ~w", [Score]),nl
 		),
-		true,worldSize(S),draw_playersvision(S,S).
+		true.
 		
 	nextStepCaller:-
 		run(nextStep),
 		true.
 	gohome:-
-		currentPos(X,Y),1=X,1=Y,climb_up;
-		collect_scrumble,worldSize(S),
-		draw_horizontal(S,S),write("Going Home!"),nl,sleep(0.1),
+		currentPos(X,Y),1=X,1=Y,retract(currentLife(ActualLife)),assert(currentLife(0)),climb_up;
+		going_home,worldSize(S),
+		draw_horizontal(S,S),write("Going Home!"),nl,sleep(0.5),
 		gohome.
-
 	identify_wumpus(X,Y):-
 	(
 		(
@@ -672,3 +673,28 @@ draw_playersvision(N,M):-
 			draw_playersvision(S,D)
 		);
 		true.
+	playersvision:-
+		worldSize(S),draw_playersvision(S,S).
+	going_home:-
+		temp(A,B),retract(temp(A,B)),temp(X,Y),(
+			M is A-X,M<0,direction(C),find_direction(C,east),walk_foward;
+			M is A-X,M>0,direction(C),find_direction(C,west),walk_foward;
+			M is B-Y,M<0,direction(C),find_direction(C,north),walk_foward;
+			M is B-Y,M>0,direction(C),find_direction(C,south),walk_foward
+		).
+	best_path(X,Y,A,B):-
+	(
+		X>A->false;
+		Y>B->false;
+		X=A,Y=B;
+		M is X+1,safeTiles(M,Y),best_path(M,Y,A,B),assert(temp(M,Y));
+		M is Y+1,safeTiles(X,M),best_path(X,M,A,B),assert(temp(X,M));
+		false
+	).
+	best_pathHome(X,Y):-
+	(
+		best_path(1,1,X,Y),assertz(temp(1,1));
+		collect_scrumble,worldSize(S),
+		draw_horizontal(S,S),write("Going Home!"),nl,sleep(0.5),
+		currentPos(A,B),best_pathHome(A,B)
+	).
