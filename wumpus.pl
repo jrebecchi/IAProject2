@@ -17,9 +17,12 @@
 	element/2,
 	visitedTiles/2,
 	safeTiles/2,
-	possible_pit/2,
-	possible_wumpus/2,
-	scrumble/2.
+	possible_pit/3,
+	possible_wumpus/3,
+	scrumble/2,
+	players_pit/2,
+	players_wumpus/2,
+	temp/2.
 
 /* Defining adjecent */
 
@@ -263,7 +266,9 @@ walk_foward :-
 		currentPos(X,Y),update_score(-1),
 		X is 1,
 		Y is 1,
-		write("Player climb up outside the dungeon"),nl.
+		retract(currentLife(ActualLife)),assert(currentLife(-1)),
+		write("Player climb up outside the dungeon"),nl,
+		worldSize(S).
 		/* Update score */
 		
 	apply_damage:-
@@ -427,7 +432,7 @@ walk_foward :-
 		(
 			explore; 
 			collect_scrumble;
-			(gohome,climb_up)
+			(X=1,Y=1;best_pathHome(X,Y)),gohome
 		).
 
 	/* The brain of the player */
@@ -435,16 +440,16 @@ walk_foward :-
 		currentPos(X,Y),
 		(
 			(
-				not(gold(A,B)),gohome
+				not(gold(A,B)),(best_pathHome(X,Y),gohome)
 			);
 			(
 				shine(X,Y)->grab_object
 			);
 			(
 
-				((smell(X,Y)->handle_smell),(wind(X,Y)-> handle_breeze))->(collect_scrumble;(gohome,climb_up));
-				(smell(X,Y)->handle_smell)->(collect_scrumble;(gohome,climb_up));
-				(wind(X,Y)-> handle_breeze)->(collect_scrumble;(gohome,climb_up))
+				(smell(X,Y),wind(X,Y))->(handle_smell,handle_breeze,movements);
+				(smell(X,Y)->handle_smell)->(movements);
+				(wind(X,Y)-> handle_breeze)->(movements)
 			);
 			(
 				safe_surroundings,write("Player feels safe!"), nl,movements
@@ -479,18 +484,18 @@ walk_foward :-
 
 	handle_breeze:-
 		currentPos(X,Y),(
-			X1 is X+1,assert(possible_pit(X1,Y)),
-			X2 is X-1,assert(possible_pit(X2,Y)),
-			Y1 is Y+1,assert(possible_pit(X,Y1)),
-			Y2 is Y-1,assert(possible_pit(X,Y2))
+			X1 is X+1,assert(possible_pit(X1,Y,east)),
+			X2 is X-1,assert(possible_pit(X2,Y,west)),
+			Y1 is Y+1,assert(possible_pit(X,Y1,north)),
+			Y2 is Y-1,assert(possible_pit(X,Y2,south))
 		).
 
 	handle_smell:-
 		currentPos(X,Y),(
-			X1 is X+1,assert(possible_wumpus(X1,Y)),
-			X2 is X-1,assert(possible_wumpus(X2,Y)),
-			Y1 is Y+1,assert(possible_wumpus(X,Y1)),
-			Y2 is Y-1,assert(possible_wumpus(X,Y2))
+			X1 is X+1,assert(possible_wumpus(X1,Y,east)),
+			X2 is X-1,assert(possible_wumpus(X2,Y,west)),
+			Y1 is Y+1,assert(possible_wumpus(X,Y1,north)),
+			Y2 is Y-1,assert(possible_wumpus(X,Y2,south))
 		).
 
 	
@@ -567,15 +572,17 @@ walk_foward :-
 	run(nextStep):-
 		sleep(0.5),nl,
 		write("New Step"),nl,nl,
+		
 		(
 			currentLife(LifeLevel),
 			LifeLevel > 0,
 			decision_maker,
-			nextStepCaller
+			nextStepCaller,
+			identify_wumpus(1,1),identify_pit(1,1)
 		);
 		(
 			points(Score),
-			format("------ Your final score is ~w", [Score])
+			format("------ Your final score is ~w", [Score]),nl
 		),
 		true.
 		
@@ -583,7 +590,111 @@ walk_foward :-
 		run(nextStep),
 		true.
 	gohome:-
-		currentPos(X,Y),1=X,1=Y,retract(currentLife(ActualLife)),assert(currentLife(0));
-		collect_scrumble,worldSize(S),
+		currentPos(X,Y),1=X,1=Y,retract(currentLife(ActualLife)),assert(currentLife(0)),climb_up;
+		going_home,worldSize(S),
 		draw_horizontal(S,S),write("Going Home!"),nl,sleep(0.5),
 		gohome.
+	identify_wumpus(X,Y):-
+	(
+		(
+		(possible_wumpus(X,Y,east);1=X),
+		(possible_wumpus(X,Y,west);12=X),
+		(possible_wumpus(X,Y,north);1=Y),
+		(possible_wumpus(X,Y,south);12=Y),
+		not(players_wumpus(X,Y)),
+		assert(players_wumpus(X,Y))
+		);true
+	),
+	(
+		X<12,M is X+1,identify_wumpus(M,Y);
+		Y<12,M is Y+1,identify_wumpus(X,M)
+	);
+	true.
+	identify_pit(X,Y):-
+	(	(
+		(possible_pit(X,Y,east);1=X),
+		(possible_pit(X,Y,west);12=X),
+		(possible_pit(X,Y,north);1=Y),
+		(possible_pit(X,Y,south);12=Y),
+		not(players_pit(X,Y)),
+		assert(players_pit(X,Y))
+		);true
+	),
+	(
+		X<12,M is X+1,identify_pit(M,Y);
+		Y<12,M is Y+1,identify_pit(1,M);
+		true
+	).
+draw_playersvision(N,M):-
+		(N > 0,
+			(
+				write(" | "),
+				(	
+					worldSize(W2),
+					InvertedN is W2 - N + 1, 
+					currentPos(InvertedN,M),
+					write("P"),
+					C is N - 1,
+					draw_playersvision(C,M)
+				);
+				(
+					worldSize(W3),
+					InvertedN is W3 - N + 1, 
+					players_pit(InvertedN,M),
+					write("O"),
+					C is N - 1,
+					draw_playersvision(C,M)
+				);
+				(
+					worldSize(W4),
+					InvertedN is W4 - N + 1, 
+					players_wumpus(InvertedN,M),
+					write("E"),
+					C is N - 1,
+					draw_playersvision(C,M)
+				);
+				(
+					worldSize(W1),
+					InvertedN is W1 - N + 1, 
+					not(currentPos(InvertedN,M)),
+					write(" "),
+					C is N - 1,
+					draw_playersvision(C,M)
+				)	
+			)
+		);
+		write(" |"),nl,
+		write("  ________________________________________________"),
+		nl,
+		D is M - 1,
+		worldSize(S),
+		(
+			D > 0,
+			draw_playersvision(S,D)
+		);
+		true.
+	playersvision:-
+		worldSize(S),draw_playersvision(S,S).
+	going_home:-
+		temp(A,B),retract(temp(A,B)),temp(X,Y),(
+			M is A-X,M<0,direction(C),find_direction(C,east),walk_foward;
+			M is A-X,M>0,direction(C),find_direction(C,west),walk_foward;
+			M is B-Y,M<0,direction(C),find_direction(C,north),walk_foward;
+			M is B-Y,M>0,direction(C),find_direction(C,south),walk_foward
+		).
+	best_path(X,Y,A,B):-
+	(
+		X>A->false;
+		Y>B->false;
+		X=A,Y=B;
+		M is X+1,safeTiles(M,Y),best_path(M,Y,A,B),assert(temp(M,Y));
+		M is Y+1,safeTiles(X,M),best_path(X,M,A,B),assert(temp(X,M));
+		false
+	).
+	best_pathHome(X,Y):-
+	(
+		best_path(1,1,X,Y),assertz(temp(1,1));
+		collect_scrumble,worldSize(S),
+		draw_horizontal(S,S),write("Going Home!"),nl,sleep(0.5),
+		currentPos(A,B),best_pathHome(A,B)
+	).
